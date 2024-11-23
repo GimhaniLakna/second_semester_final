@@ -2,8 +2,8 @@ $('#login').click(function(event) {
     event.preventDefault();
 
     // Get login input
-    let loginName = $('Gimhani').val().trim();
-    let loginPassword = $('1234').val().trim();
+    let loginName = $('#user').val().trim();
+    let loginPassword = $('#pass').val().trim();
 
     // Retrieve stored credentials
     let storedName = localStorage.getItem("registeredName");
