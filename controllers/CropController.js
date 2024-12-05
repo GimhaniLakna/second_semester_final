@@ -1,19 +1,19 @@
-$(document).ready(function() {
+$(document).ready(function () {
     loadCrops();
 });
 
 var recordIndex;
 
-function loadCrops(){
+function loadCrops() {
     $.ajax({
-        url: 'http://localhost:5050/green-shadow/api/v1/crop',
-        type: 'GET',           
-        contentType: 'application/json', 
-        success: function(crops) {
+        url: "http://localhost:5050/green-shadow/api/v1/crop",
+        type: "GET",
+        contentType: "application/json",
+        success: function (crops) {
             console.log("Crops loaded:", crops);
             $("#crop-table").empty();
-            
-            crops.forEach(function(crop) {
+
+            crops.forEach(function (crop) {
                 var record = `
                     <tr style="cursor: pointer">
                         <td class="crop-image-value">
@@ -35,15 +35,73 @@ function loadCrops(){
                     </tr>`;
                 $("#crop-table").append(record);
             });
+            $("#crop-table").on("click", ".update-button", function () {
+                const row = $(this).closest("tr");
+
+                const crop_name = row.find(".crop-name-value").text();
+                const scientific_name = row.find(".crop-scientific-value").text();
+                const category = row.find(".crop-category-value").text();
+                const season = row.find(".crop-season-value").text();
+                const field_name = row.find(".crop-field-value").text();
+
+                $("#crop_name").val(crop_name);
+                $("#crop_scientific_name").val(scientific_name);
+                $("#crop_category").val(category);
+                $("#crop_season").val(season);
+                $("#crop_field").val(field_name !== "Unassigned" ? field_name : "");
+            });
         },
-        error: function(xhr, status, error) {
-            console.error("Failed to load crops:", error);
+        error: function (xhr, status, error) {
+            console.error("Failed to load vehicle:", error);
             alert("An error occurred while loading the crop data.");
-        }
+        },
     });
 }
 
-function saveCrop(){
+$("#crop-table").on("click", ".delete-button", function () {
+    const row = $(this).closest("tr");
+
+    const commonName = row.find(".crop-name-value").text();
+
+    $.ajax({
+        url: `http://localhost:5050/green-shadow/api/v1/crop/getcropcode/${commonName}`,
+        method: "GET",
+        success: function (cropCode) {
+            console.log("Fetched crop Code:", cropCode);
+
+            $.ajax({
+                url: `http://localhost:5050/green-shadow/api/v1/crop/${cropCode}`,
+                method: "DELETE",
+                contentType: "application/json",
+                success: function (results) {
+                    console.log(results);
+                    Swal.fire({
+                        title: "Crop Delete",
+                        text: "Crop Successfully Deleted",
+                        icon: "success"
+                    });
+                    loadCrops();
+                },
+                error: function (error) {
+                    console.log("Status:", status);
+                    console.log("Error:", error);
+                    Swal.fire({
+                        title: "Crop Delete",
+                        text: "Crop Delete Unsuccessfull",
+                        icon: "error"
+                    });
+                    loadCrops();
+                },
+            });
+        },
+        error: function (error) {
+            alert("Error fetching crop id: " + error.responseText);
+            console.error(error);
+        },
+    });
+});
+
+function saveCrop() {
     const formData = new FormData();
 
     formData.append("common_name", $("#crop_common_name").val());
@@ -54,44 +112,35 @@ function saveCrop(){
     formData.append("field_name", $("#field_details").val());
 
     $.ajax({
-        url:" http://localhost:5050/green-shadow/api/v1/crop",
+        url: " http://localhost:5050/green-shadow/api/v1/crop",
         method: "POST",
         contentType: false,
         processData: false,
         data: formData,
-        success: function (result){
+        success: function (result) {
             clearFields();
             console.log(result);
-            alert("Crop Save Successfull");
+            Swal.fire({
+                title: "Crop Save",
+                text: "Crop Successfully Saved",
+                icon: "success"
+            });
             loadCrops();
         },
-        error: function (result){
+        error: function (result) {
             clearFields();
             console.log(result);
-            alert("Crop Save Unsuccessfull");
+            Swal.fire({
+                title: "Crop Save",
+                text: "Crop Save Unsuccessfull",
+                icon: "error"
+            });
             loadCrops();
-        }
+        },
     });
 }
 
-$("#crop-table").on('click','tr',function (){
-    let index = $(this).index();
-    recordIndex = index;
-
-    let common_name = $(this).find(".crop-name-value").text();
-    let scientific_name = $(this).find(".crop-scientific-value").text();
-    let category = $(this).find(".crop-category-value").text();
-    let season = $(this).find(".crop-season-value").text();
-    let field = $(this).find(".crop-field-value").text();
-
-    $("#crop_common_name").val(common_name);
-    $("#crop_scientific_name").val(scientific_name);
-    $("#crop_category").val(category);
-    $("#crop_season").val(season);
-    $("#field_details").val(field)
-});
-
-function updateCrop(){
+function updateCrop() {
     const formData = new FormData();
 
     formData.append("common_name", $("#crop_common_name").val());
@@ -110,25 +159,33 @@ function updateCrop(){
         contentType: false,
         processData: false,
         data: formData,
-        success: function (result){
+        success: function (result) {
             clearFields();
             console.log(result);
-            alert("Crop update Successfull");
+            Swal.fire({
+                title: "Crop Update",
+                text: "Crop Successfully Updated",
+                icon: "success"
+            });
             loadCrops();
         },
-        error: function (result){
+        error: function (result) {
             clearFields();
             console.log(result);
-            alert("Crop update Unsuccessfull");
+            Swal.fire({
+                title: "Crop Update",
+                text: "Crop Update Unsuccessfull",
+                icon: "error"
+            });
             loadCrops();
-        }
+        },
     });
 }
 
-function clearFields(){
-    $("#crop_common_name").val('');
-    $("#crop_scientific_name").val('');
-    $("#crop_image").val('');
-    $("#crop_category").val('');
-    $("#crop_season").val('');
+function clearFields() {
+    $("#crop_common_name").val("");
+    $("#crop_scientific_name").val("");
+    $("#crop_image").val("");
+    $("#crop_category").val("");
+    $("#crop_season").val("");
 }

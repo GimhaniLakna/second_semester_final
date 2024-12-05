@@ -1,19 +1,19 @@
-$(document).ready(function() {
+$(document).ready(function () {
     loadFields();
 });
 
 var recordIndex;
 
-function loadFields(){
+function loadFields() {
     $.ajax({
-        url: 'http://localhost:5050/green-shadow/api/v1/field',
-        type: 'GET',           
-        contentType: 'application/json', 
-        success: function(fields) {
+        url: "http://localhost:5050/green-shadow/api/v1/field",
+        type: "GET",
+        contentType: "application/json",
+        success: function (fields) {
             console.log("Fields loaded:", fields);
             $("#fields-table").empty();
-            
-            fields.forEach(function(field) {
+
+            fields.forEach(function (field) {
                 const locationString = `(${field.location.x}, ${field.location.y})`;
                 var record = `
                     <tr style="cursor:pointer">
@@ -34,36 +34,80 @@ function loadFields(){
                     </tr>`;
                 $("#fields-table").append(record);
             });
+            $("#fields-table").on("click", ".update-button", function () {
+                const row = $(this).closest("tr");
+
+                const field_name = row.find(".field-name-value").text();
+                const field_location = row.find(".field-location-value").text();
+                const extent_size = row.find(".extent-size-value").text();
+                const [x, y] = field_location
+                    .replace("(", "")
+                    .replace(")", "")
+                    .split(",")
+                    .map((coord) => coord.trim());
+
+                $("#field_name").val(field_name);
+                $("#field_location_x").val(x);
+                $("#field_location_y").val(y);
+                $("#field_size").val(extent_size);
+            });
         },
-        error: function(xhr, status, error) {
+        error: function (xhr, status, error) {
             console.error("Failed to load fields:", error);
             alert("An error occurred while loading the field data.");
-        }
-
+        },
     });
-
-    // $("#fields-table").on('click', '.update-button', function() {
-    //     console.log("Update button clicked");
-    //     let index = $(this).index();
-    //     recordIndex = index;
-    
-
-    //     let field_name = $(this).find(".field-name-value").text();
-    //     let field_location = $(this).find(".field-location-value").text();
-    //     let extent_size = $(this).find(".extent-size-value").text();
-
-    //     $("#field_name").val(field_name);
-    //     $("#field_location_x").val(field_location);
-    //     $("#field_location_y").val(field_location);
-    //     $("#field_size").val(extent_size);
-    // });
 }
 
-function saveField(){
-    const formData = new FormData(); 
-    
+$("#fields-table").on("click", ".delete-button", function () {
+    const row = $(this).closest("tr");
+
+    const fieldName = row.find(".field-name-value").text();
+
+    const url = `http://localhost:5050/green-shadow/api/v1/field/getfieldcode/${fieldName}`;
+    $.ajax({
+        url: url,
+        method: "GET",
+        success: function (fieldCode) {
+            console.log("Fetched field Code:", fieldCode);
+
+            $.ajax({
+                url: "http://localhost:5050/green-shadow/api/v1/field/" + fieldCode,
+                method: "DELETE",
+                contentType: "application/json",
+                success: function (results) {
+                    console.log(results);
+                    Swal.fire({
+                        title: "Field Delete",
+                        text: "Field Successfully Deleted",
+                        icon: "success"
+                    });
+                    fetchFieldNames("field_details");
+                    loadFields();
+                },
+                error: function (error) {
+                    console.log("Status:", status);
+                    console.log("Error:", error);
+                    Swal.fire({
+                        title: "Field Delete",
+                        text: "Field Delete Unsuccessfull",
+                        icon: "error"
+                    });
+                },
+            });
+        },
+        error: function (error) {
+            alert("Error fetching equipment id: " + error.responseText);
+            console.error(error);
+        },
+    });
+});
+
+function saveField() {
+    const formData = new FormData();
+
     formData.append("field_name", $("#field_name").val());
-    
+
     const location_x = parseInt($("#field_location_x").val());
     formData.append("x", location_x);
 
@@ -76,50 +120,40 @@ function saveField(){
     formData.append("field_image2", $("#field_image2")[0].files[0]);
 
     $.ajax({
-        url:"http://localhost:5050/green-shadow/api/v1/field",
+        url: "http://localhost:5050/green-shadow/api/v1/field",
         method: "POST",
         contentType: false,
         processData: false,
         data: formData,
-        success: function (result){
+        success: function (result) {
             clearFields();
             console.log(result);
-            alert("Field Save Successfull");
+            Swal.fire({
+                title: "Field Save",
+                text: "Field Successfully Saved",
+                icon: "success"
+            });
+            fetchFieldNames("field_details");
             loadFields();
         },
-        error: function (result){
+        error: function (result) {
             clearFields();
             console.log(result);
-            alert("Field Save Unsuccessfull");
+            Swal.fire({
+                title: "Field Save",
+                text: "Field Save Unsuccessfull",
+                icon: "error"
+            });
             loadFields();
-        }
+        },
     });
 }
 
+function updateFields() {
+    const formData = new FormData();
 
-$("#fields-table").on('click','tr',function (){
-    let index = $(this).index();
-    recordIndex = index;
-
-    let field_name = $(this).find(".field-name-value").text();
-    let field_location = $(this).find(".field-location-value").text();
-    let [x, y] = field_location.split(",");
-    x = x.trim();
-    y = y.trim();
-
-    let extent_size = $(this).find(".extent-size-value").text();
-
-    $("#field_name").val(field_name);
-    $("#field_location_x").val(x);
-    $("#field_location_y").val(y);
-    $("#field_size").val(extent_size);
-});
-
-function updateFields(){
-    const formData = new FormData(); 
-    
     formData.append("field_name", $("#field_name").val());
-    
+
     const location_x = parseInt($("#field_location_x").val());
     formData.append("x", location_x);
 
@@ -139,26 +173,39 @@ function updateFields(){
         contentType: false,
         processData: false,
         data: formData,
-        success: function (result){
+        success: function (result) {
             clearFields();
             console.log(result);
-            alert("Field Update Successfull");
+            Swal.fire({
+                title: "Field Update",
+                text: "Field Successfully Updated",
+                icon: "success"
+            });
             loadFields();
         },
-        error: function (result){
+        error: function (result) {
             clearFields();
             console.log(result);
-            alert("Field Update Unsuccessfull");
+            Swal.fire({
+                title: "Field Update",
+                text: "Field Update Unsuccessfull",
+                icon: "error"
+            });
             loadFields();
-        }
+        },
     });
 }
 
 function clearFields(){
+    console.log("clicked");
+
     $("#field_name").val('');
     $("#field_location_x").val('');
     $("#field_location_y").val('');
     $("#field_size").val('');
-    $("#field_image1").val('');
-    $("#field_image2").val('');
 }
+
+// $("#clearBtn").on("click", function () {
+//   console.log("clicked");
+
+//   clearFields();
